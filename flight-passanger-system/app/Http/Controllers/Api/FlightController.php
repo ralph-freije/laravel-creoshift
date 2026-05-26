@@ -37,33 +37,4 @@ class FlightController extends Controller
             'data' => $flights,
         ]);
     }
-
-    public function passengers(Request $request, Flight $flight)
-    {
-        $passengers = QueryBuilder::for($flight->passengers())
-            ->allowedFilters([
-                'first_name',
-                'last_name',
-                'email',
-                'dob',
-                'passport_expiry_date',
-            ])
-            ->allowedSorts([
-                'passengers.id',
-                'first_name',
-                'last_name',
-                'email',
-                'dob',
-                'passport_expiry_date',
-            ])
-            ->defaultSort('passengers.id')
-            ->paginate($request->get('per_page', 15))
-            ->appends($request->query());
-
-        return response()->json([
-            'success' => true,
-            'flight' => $flight,
-            'data' => $passengers,
-        ]);
-    }
 }

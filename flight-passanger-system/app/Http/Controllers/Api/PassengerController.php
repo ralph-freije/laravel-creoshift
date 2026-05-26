@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Passenger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class PassengerController extends Controller
@@ -19,6 +20,12 @@ class PassengerController extends Controller
                 'email',
                 'dob',
                 'passport_expiry_date',
+
+                AllowedFilter::callback('flight_id', function ($query, $value) {
+                    $query->whereHas('flights', function ($q) use ($value) {
+                        $q->where('flights.id', $value);
+                    });
+                }),
             ])
             ->allowedSorts([
                 'id',
