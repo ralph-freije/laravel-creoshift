@@ -1,16 +1,45 @@
 <?php
 
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\FlightController;
 use App\Http\Controllers\Api\PassengerController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/passengers', [PassengerController::class, 'index']);
-Route::post('/passengers', [PassengerController::class, 'store']);
-Route::get('/passengers/{passenger}', [PassengerController::class, 'show']);
-Route::put('/passengers/{passenger}', [PassengerController::class, 'update']);
-Route::delete('/passengers/{passenger}', [PassengerController::class, 'destroy']);
+Route::post('/login', [AuthController::class, 'login']);
 
-Route::get('/flights', [FlightController::class, 'index']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
 
-Route::apiResource('/users', UserController::class);
+    Route::apiResource('/passengers', PassengerController::class)->only([
+        'index',
+        'show',
+    ]);
+
+    Route::apiResource('/flights', FlightController::class)->only([
+        'index',
+        'show',
+    ]);
+
+    Route::apiResource('/users', UserController::class)->only([
+        'index',
+        'show',
+    ]);
+
+    Route::middleware('role:admin')->group(function () {
+        Route::apiResource('/passengers', PassengerController::class)->except([
+            'index',
+            'show',
+        ]);
+
+        Route::apiResource('/flights', FlightController::class)->except([
+            'index',
+            'show',
+        ]);
+
+        Route::apiResource('/users', UserController::class)->except([
+            'index',
+            'show',
+        ]);
+    });
+});
