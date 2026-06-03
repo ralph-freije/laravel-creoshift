@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Passenger;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
@@ -13,35 +14,40 @@ class PassengerController extends Controller
 {
     public function index(Request $request)
     {
-        $passengers = QueryBuilder::for(Passenger::class)
-            ->allowedFilters([
-                'first_name',
-                'last_name',
-                'email',
-                'dob',
-                'passport_expiry_date',
+        $cacheKey = 'passengers_' . md5(json_encode($request->query()));
 
-                AllowedFilter::callback('flight_id', function ($query, $value) {
-                    $query->whereHas('flights', function ($q) use ($value) {
-                        $q->where('flights.id', $value);
-                    });
-                }),
-            ])
-            ->allowedSorts([
-                'id',
-                'first_name',
-                'last_name',
-                'email',
-                'dob',
-                'passport_expiry_date',
-                'created_at',
-            ])
-            ->defaultSort('id')
-            ->paginate($request->get('per_page', 15))
-            ->appends($request->query());
+        $passengers = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($request) {
+            return QueryBuilder::for(Passenger::class)
+                ->allowedFilters([
+                    'first_name',
+                    'last_name',
+                    'email',
+                    'dob',
+                    'passport_expiry_date',
+
+                    AllowedFilter::callback('flight_id', function ($query, $value) {
+                        $query->whereHas('flights', function ($q) use ($value) {
+                            $q->where('flights.id', $value);
+                        });
+                    }),
+                ])
+                ->allowedSorts([
+                    'id',
+                    'first_name',
+                    'last_name',
+                    'email',
+                    'dob',
+                    'passport_expiry_date',
+                    'created_at',
+                ])
+                ->defaultSort('id')
+                ->paginate($request->get('per_page', 15))
+                ->appends($request->query());
+        });
 
         return response()->json([
             'success' => true,
+            'cached' => true,
             'data' => $passengers,
         ]);
     }
@@ -69,6 +75,8 @@ class PassengerController extends Controller
 
         $passenger = Passenger::create($validated);
 
+        Cache::flush();
+
         return response()->json([
             'success' => true,
             'message' => 'Passenger created successfully',
@@ -93,6 +101,8 @@ class PassengerController extends Controller
 
         $passenger->update($validated);
 
+        Cache::flush();
+
         return response()->json([
             'success' => true,
             'message' => 'Passenger updated successfully',
@@ -103,6 +113,8 @@ class PassengerController extends Controller
     public function destroy(Passenger $passenger)
     {
         $passenger->delete();
+
+        Cache::flush();
 
         return response()->json([
             'success' => true,

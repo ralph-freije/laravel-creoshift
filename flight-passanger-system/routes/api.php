@@ -6,7 +6,7 @@ use App\Http\Controllers\Api\PassengerController;
 use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
-Route::post('/login', [AuthController::class, 'login']);
+Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:login');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
@@ -17,11 +17,6 @@ Route::middleware('auth:sanctum')->group(function () {
     ]);
 
     Route::apiResource('/flights', FlightController::class)->only([
-        'index',
-        'show',
-    ]);
-
-    Route::apiResource('/users', UserController::class)->only([
         'index',
         'show',
     ]);
@@ -37,9 +32,10 @@ Route::middleware('auth:sanctum')->group(function () {
             'show',
         ]);
 
-        Route::apiResource('/users', UserController::class)->except([
-            'index',
-            'show',
-        ]);
+        Route::apiResource('/users', UserController::class);
+
+        Route::post('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'assignPassenger']);
+
+        Route::get('/users-export', [UserController::class, 'export']);
     });
 });

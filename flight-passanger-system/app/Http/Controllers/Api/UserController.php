@@ -7,6 +7,8 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Spatie\QueryBuilder\QueryBuilder;
+use App\Exports\UsersExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserController extends Controller
 {
@@ -90,4 +92,8 @@ class UserController extends Controller
             'message' => 'User deleted successfully',
         ]);
     }
+    public function export()
+{
+    return Excel::download(new UsersExport, 'users.xlsx');
+}
 }

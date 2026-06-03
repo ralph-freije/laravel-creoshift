@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Flight;
 use Illuminate\Http\Request;
 use Spatie\QueryBuilder\QueryBuilder;
+use App\Models\Passenger;
 
 class FlightController extends Controller
 {
@@ -93,4 +94,15 @@ class FlightController extends Controller
             'message' => 'Flight deleted successfully',
         ]);
     }
+    public function assignPassenger(Flight $flight, Passenger $passenger)
+{
+    $flight->passengers()->syncWithoutDetaching([$passenger->id]);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Passenger assigned to flight successfully',
+        'flight' => $flight,
+        'passenger' => $passenger,
+    ]);
+}
 }

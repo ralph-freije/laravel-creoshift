@@ -14,7 +14,7 @@ class DatabaseSeeder extends Seeder
         Flight::factory()->count(50)->create();
 
         $passengers = Passenger::all();
-
+$this->call(RoleSeeder::class);
         Flight::all()->each(function ($flight) use ($passengers) {
             $flight->passengers()->attach(
                 $passengers->random(rand(10, 40))->pluck('id')->toArray()
