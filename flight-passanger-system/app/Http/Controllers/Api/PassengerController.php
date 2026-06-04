@@ -7,14 +7,38 @@ use App\Models\Passenger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
 class PassengerController extends Controller
 {
+    private function rememberPassengerCacheKey(string $cacheKey): void
+    {
+        $keys = Cache::get('passenger_cache_keys', []);
+
+        if (!in_array($cacheKey, $keys)) {
+            $keys[] = $cacheKey;
+            Cache::put('passenger_cache_keys', $keys, now()->addHours(1));
+        }
+    }
+
+    private function clearPassengerCache(): void
+    {
+        $keys = Cache::get('passenger_cache_keys', []);
+
+        foreach ($keys as $key) {
+            Cache::forget($key);
+        }
+
+        Cache::forget('passenger_cache_keys');
+    }
+
     public function index(Request $request)
     {
         $cacheKey = 'passengers_' . md5(json_encode($request->query()));
+
+        $this->rememberPassengerCacheKey($cacheKey);
 
         $passengers = Cache::remember($cacheKey, now()->addMinutes(10), function () use ($request) {
             return QueryBuilder::for(Passenger::class)
@@ -65,9 +89,13 @@ class PassengerController extends Controller
         $validated = $request->validate([
             'first_name' => 'required|string|max:255',
             'last_name' => 'required|string|max:255',
-            'email' => 'required|email|unique:passengers,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('passengers', 'email')->whereNull('deleted_at'),
+            ],
             'password' => 'required|string|min:6',
-            'dob' => 'required|date',
+            'dob' => 'required|date|before:today',
             'passport_expiry_date' => 'required|date|after:today',
         ]);
 
@@ -75,7 +103,7 @@ class PassengerController extends Controller
 
         $passenger = Passenger::create($validated);
 
-        Cache::flush();
+        $this->clearPassengerCache();
 
         return response()->json([
             'success' => true,
@@ -89,9 +117,16 @@ class PassengerController extends Controller
         $validated = $request->validate([
             'first_name' => 'sometimes|required|string|max:255',
             'last_name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:passengers,email,' . $passenger->id,
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                Rule::unique('passengers', 'email')
+                    ->whereNull('deleted_at')
+                    ->ignore($passenger->id),
+            ],
             'password' => 'sometimes|required|string|min:6',
-            'dob' => 'sometimes|required|date',
+            'dob' => 'sometimes|required|date|before:today',
             'passport_expiry_date' => 'sometimes|required|date|after:today',
         ]);
 
@@ -101,7 +136,7 @@ class PassengerController extends Controller
 
         $passenger->update($validated);
 
-        Cache::flush();
+        $this->clearPassengerCache();
 
         return response()->json([
             'success' => true,
@@ -114,7 +149,7 @@ class PassengerController extends Controller
     {
         $passenger->delete();
 
-        Cache::flush();
+        $this->clearPassengerCache();
 
         return response()->json([
             'success' => true,

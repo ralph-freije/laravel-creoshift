@@ -37,5 +37,9 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::post('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'assignPassenger']);
 
         Route::get('/users-export', [UserController::class, 'export']);
-    });
+        Route::get('/admin/profile', [AuthController::class, 'profile']);
+
+        Route::post('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'assignPassenger']);
+        Route::delete('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'unassignPassenger']);
+     });
 });

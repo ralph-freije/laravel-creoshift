@@ -2,13 +2,14 @@
 
 namespace App\Http\Controllers\Api;
 
+use App\Exports\UsersExport;
 use App\Http\Controllers\Controller;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use Spatie\QueryBuilder\QueryBuilder;
-use App\Exports\UsersExport;
+use Illuminate\Validation\Rule;
 use Maatwebsite\Excel\Facades\Excel;
+use Spatie\QueryBuilder\QueryBuilder;
 
 class UserController extends Controller
 {
@@ -39,7 +40,11 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users', 'email')->whereNull('deleted_at'),
+            ],
             'password' => 'required|string|min:6',
         ]);
 
@@ -66,7 +71,14 @@ class UserController extends Controller
     {
         $validated = $request->validate([
             'name' => 'sometimes|required|string|max:255',
-            'email' => 'sometimes|required|email|unique:users,email,' . $user->id,
+            'email' => [
+                'sometimes',
+                'required',
+                'email',
+                Rule::unique('users', 'email')
+                    ->whereNull('deleted_at')
+                    ->ignore($user->id),
+            ],
             'password' => 'sometimes|required|string|min:6',
         ]);
 
@@ -92,8 +104,9 @@ class UserController extends Controller
             'message' => 'User deleted successfully',
         ]);
     }
+
     public function export()
-{
-    return Excel::download(new UsersExport, 'users.xlsx');
-}
+    {
+        return Excel::download(new UsersExport, 'users.xlsx');
+    }
 }
