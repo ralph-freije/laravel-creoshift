@@ -94,15 +94,26 @@ class FlightController extends Controller
             'message' => 'Flight deleted successfully',
         ]);
     }
-    public function assignPassenger(Flight $flight, Passenger $passenger)
-{
-    $flight->passengers()->syncWithoutDetaching([$passenger->id]);
+        public function assignPassenger(Flight $flight, Passenger $passenger)
+    {
+     $flight->passengers()->syncWithoutDetaching([$passenger->id]);
 
-    return response()->json([
-        'success' => true,
-        'message' => 'Passenger assigned to flight successfully',
-        'flight' => $flight,
-        'passenger' => $passenger,
-    ]);
-}
+        return response()->json([
+            'success' => true,
+         'message' => 'Passenger assigned to flight successfully',
+         'flight' => $flight,
+          'passenger' => $passenger,
+        ]);
+    }
+    public function unassignPassenger(Flight $flight, Passenger $passenger)
+    {
+     $flight->passengers()->detach($passenger->id);
+
+     return response()->json([
+            'success' => true,
+         'message' => 'Passenger unassigned from flight successfully',
+         'flight_id' => $flight->id,
+            'passenger_id' => $passenger->id,
+        ]);
+    }
 }
