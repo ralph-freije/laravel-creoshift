@@ -17,7 +17,7 @@ class PassengerController extends Controller
     {
         $keys = Cache::get('passenger_cache_keys', []);
 
-        if (!in_array($cacheKey, $keys)) {
+        if (! in_array($cacheKey, $keys)) {
             $keys[] = $cacheKey;
             Cache::put('passenger_cache_keys', $keys, now()->addHours(1));
         }
@@ -71,7 +71,6 @@ class PassengerController extends Controller
 
         return response()->json([
             'success' => true,
-            'cached' => true,
             'data' => $passengers,
         ]);
     }

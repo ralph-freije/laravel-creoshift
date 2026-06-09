@@ -21,6 +21,7 @@ class Passenger extends Model
 
     protected $hidden = [
         'password',
+        'deleted_at',
     ];
 
     public function flights()

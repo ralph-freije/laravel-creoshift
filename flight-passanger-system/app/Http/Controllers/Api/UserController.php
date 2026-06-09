@@ -8,6 +8,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Maatwebsite\Excel\Facades\Excel;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -45,17 +46,32 @@ class UserController extends Controller
                 'email',
                 Rule::unique('users', 'email')->whereNull('deleted_at'),
             ],
-            'password' => 'required|string|min:6',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+            'role' => 'required|in:admin,user',
         ]);
+
+        $role = $validated['role'];
+        unset($validated['role']);
 
         $validated['password'] = Hash::make($validated['password']);
 
         $user = User::create($validated);
+        $user->assignRole($role);
 
         return response()->json([
             'success' => true,
             'message' => 'User created successfully',
-            'data' => $user,
+            'data' => [
+                'user' => $user,
+                'roles' => $user->getRoleNames(),
+            ],
         ], 201);
     }
 
@@ -63,7 +79,10 @@ class UserController extends Controller
     {
         return response()->json([
             'success' => true,
-            'data' => $user,
+            'data' => [
+                'user' => $user,
+                'roles' => $user->getRoleNames(),
+            ],
         ]);
     }
 
@@ -79,8 +98,24 @@ class UserController extends Controller
                     ->whereNull('deleted_at')
                     ->ignore($user->id),
             ],
-            'password' => 'sometimes|required|string|min:6',
+            'password' => [
+                'sometimes',
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
+            'role' => 'sometimes|required|in:admin,user',
         ]);
+
+        $role = null;
+
+        if (isset($validated['role'])) {
+            $role = $validated['role'];
+            unset($validated['role']);
+        }
 
         if (isset($validated['password'])) {
             $validated['password'] = Hash::make($validated['password']);
@@ -88,10 +123,17 @@ class UserController extends Controller
 
         $user->update($validated);
 
+        if ($role) {
+            $user->syncRoles([$role]);
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'User updated successfully',
-            'data' => $user,
+            'data' => [
+                'user' => $user,
+                'roles' => $user->getRoleNames(),
+            ],
         ]);
     }
 

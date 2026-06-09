@@ -3,9 +3,9 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
-use App\Models\User;
 
 class AuthController extends Controller
 {
@@ -18,22 +18,24 @@ class AuthController extends Controller
 
         $user = User::where('email', $validated['email'])->first();
 
-        if (!$user || !Hash::check($validated['password'], $user->password)) {
+        if (! $user || ! Hash::check($validated['password'], $user->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
+
         $user->tokens()->delete();
 
         $token = $user->createToken('api-token')->plainTextToken;
 
         return response()->json([
             'success' => true,
-            'message' => 'Login successful',
-            'token' => $token,
-            'user' => $user,
-            'roles' => $user->getRoleNames(),
+            'data' => [
+                'token' => $token,
+                'user' => $user,
+                'roles' => $user->getRoleNames(),
+            ],
         ]);
     }
 
@@ -46,12 +48,15 @@ class AuthController extends Controller
             'message' => 'Logout successful',
         ]);
     }
+
     public function profile(Request $request)
     {
         return response()->json([
-          'success' => true,
-          'data' => $request->user(),
-          'roles' => $request->user()->getRoleNames(),
-     ]);
+            'success' => true,
+            'data' => [
+                'user' => $request->user(),
+                'roles' => $request->user()->getRoleNames(),
+            ],
+        ]);
     }
 }
