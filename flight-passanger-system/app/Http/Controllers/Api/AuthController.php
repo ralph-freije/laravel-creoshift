@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Passenger;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
@@ -14,28 +15,43 @@ class AuthController extends Controller
         $validated = $request->validate([
             'email' => 'required|email',
             'password' => 'required|string',
+            'type' => 'required|in:user,passenger',
         ]);
 
-        $user = User::where('email', $validated['email'])->first();
+        if ($validated['type'] === 'user') {
+            $account = User::where('email', $validated['email'])->first();
+        } else {
+            $account = Passenger::where('email', $validated['email'])->first();
+        }
 
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
+        if (! $account || ! Hash::check($validated['password'], $account->password)) {
             return response()->json([
                 'success' => false,
                 'message' => 'Invalid credentials',
             ], 401);
         }
 
-        $user->tokens()->delete();
+        $account->tokens()->delete();
 
-        $token = $user->createToken('api-token')->plainTextToken;
+        $token = $account->createToken($validated['type'] . '-api-token')->plainTextToken;
+
+        $data = [
+            'token' => $token,
+            'token_type' => 'Bearer',
+            'expires_at' => now()->addDays(7),
+            'type' => $validated['type'],
+        ];
+
+        if ($validated['type'] === 'user') {
+            $data['user'] = $account;
+            $data['roles'] = $account->getRoleNames();
+        } else {
+            $data['passenger'] = $account;
+        }
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'token' => $token,
-                'user' => $user,
-                'roles' => $user->getRoleNames(),
-            ],
+            'data' => $data,
         ]);
     }
 
@@ -49,14 +65,36 @@ class AuthController extends Controller
         ]);
     }
 
-    public function profile(Request $request)
+    public function me(Request $request)
     {
+        $account = $request->user();
+
+        if ($account instanceof User) {
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'type' => 'user',
+                    'user' => $account,
+                    'roles' => $account->getRoleNames(),
+                ],
+            ]);
+        }
+
+        if ($account instanceof Passenger) {
+            $account->load('flights');
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'type' => 'passenger',
+                    'passenger' => $account,
+                ],
+            ]);
+        }
+
         return response()->json([
-            'success' => true,
-            'data' => [
-                'user' => $request->user(),
-                'roles' => $request->user()->getRoleNames(),
-            ],
-        ]);
+            'success' => false,
+            'message' => 'Invalid account type',
+        ], 403);
     }
 }

@@ -10,6 +10,7 @@ Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:lo
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/me', [AuthController::class, 'me']);
 
     Route::apiResource('/flights', FlightController::class)->only([
         'index',
@@ -27,7 +28,6 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::apiResource('/users', UserController::class);
 
         Route::get('/users-export', [UserController::class, 'export']);
-        Route::get('/admin/profile', [AuthController::class, 'profile']);
 
         Route::post('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'assignPassenger']);
         Route::delete('/flights/{flight}/passengers/{passenger}', [FlightController::class, 'unassignPassenger']);

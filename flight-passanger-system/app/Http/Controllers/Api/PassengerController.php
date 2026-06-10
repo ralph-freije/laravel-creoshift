@@ -171,4 +171,5 @@ class PassengerController extends Controller
             'message' => 'Passenger deleted successfully',
         ]);
     }
+
 }
