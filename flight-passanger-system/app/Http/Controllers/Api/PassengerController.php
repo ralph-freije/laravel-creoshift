@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password;
 use Spatie\QueryBuilder\AllowedFilter;
 use Spatie\QueryBuilder\QueryBuilder;
 
@@ -93,7 +94,14 @@ class PassengerController extends Controller
                 'email',
                 Rule::unique('passengers', 'email')->whereNull('deleted_at'),
             ],
-            'password' => 'required|string|min:6',
+            'password' => [
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
             'dob' => 'required|date|before:today',
             'passport_expiry_date' => 'required|date|after:today',
         ]);
@@ -124,7 +132,15 @@ class PassengerController extends Controller
                     ->whereNull('deleted_at')
                     ->ignore($passenger->id),
             ],
-            'password' => 'sometimes|required|string|min:6',
+            'password' => [
+                'sometimes',
+                'required',
+                'confirmed',
+                Password::min(8)
+                    ->mixedCase()
+                    ->numbers()
+                    ->symbols(),
+            ],
             'dob' => 'sometimes|required|date|before:today',
             'passport_expiry_date' => 'sometimes|required|date|after:today',
         ]);
