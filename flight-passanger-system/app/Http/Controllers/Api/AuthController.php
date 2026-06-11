@@ -35,10 +35,16 @@ class AuthController extends Controller
 
         $token = $account->createToken($validated['type'] . '-api-token')->plainTextToken;
 
+        $expirationMinutes = config('sanctum.expiration');
+
+        $expiresAt = $expirationMinutes
+            ? now()->addMinutes($expirationMinutes)
+            : null;
+
         $data = [
             'token' => $token,
             'token_type' => 'Bearer',
-            'expires_at' => now()->addDays(7),
+            'expires_at' => $expiresAt,
             'type' => $validated['type'],
         ];
 
